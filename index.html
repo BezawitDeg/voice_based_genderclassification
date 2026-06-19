@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceAI System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+
+        .container { max-width: 800px; padding: 20px; }
+
+        /* BOLD AND MAXIMUM SIZE WELCOME */
+        h1 {
+            font-weight: 900;
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .instruction {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 50px;
+        }
+
+        /* CLEAN MOBILE RECORD SYMBOL (No Text) */
+        .record-button {
+            width: 100px;
+            height: 100px;
+            background-color: #2cd23a; 
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.5);
+            transition: all 0.2s ease;
+            border: 6px solid rgb(26, 14, 204);
+        }
+
+        /* The white circle inside the red button */
+        .record-inner {
+            width: 35px;
+            height: 35px;
+            background-color: rgb(222, 237, 13);
+            border-radius: 50%;
+        }
+
+        .record-button:hover {
+            transform: scale(1.1);
+            background-color: #05cc29;
+        }
+
+        #file-name {
+            margin-top: 25px;
+            color: #818cf8;
+            font-weight: bold;
+            font-size: 1rem;
+            min-height: 1.5rem;
+        }
+
+        #analyze-btn {
+            margin-top: 20px;
+            padding: 15px 50px;
+            border-radius: 12px;
+            border: none;
+            background-color: #6366f1;
+            color: white;
+            font-weight: 900;
+            font-size: 1.2rem;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        #analyze-btn:disabled { background-color: #334155; cursor: not-allowed; opacity: 0.6; }
+
+        .result-panel {
+            margin-top: 40px;
+            padding: 25px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            display: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #output-text { font-size: 1.8rem; font-weight: 800; margin-bottom: 15px; }
+        #advice-text { font-size: 1rem; color: #cbd5e1; font-style: italic; border-top: 1px solid #475569; padding-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>WELCOME VOICE RECOGNITION AI MODEL SYSTEM</h1>
+    <p class="instruction">Please upload the file in the form of <b>MP3, WAV, or FLAC</b></p>
+
+    <div class="record-button" onclick="document.getElementById('file-input').click()">
+        <div class="record-inner"></div>
+    </div>
+    
+    <p id="file-name"></p>
+    
+    <input type="file" id="file-input" hidden accept=".mp3,.wav,.flac">
+
+    <button id="analyze-btn" disabled>Analyze Now</button>
+
+    <div class="result-panel" id="result-panel">
+        <div id="output-text"></div>
+        <div id="advice-text"></div>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('file-input');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const resultPanel = document.getElementById('result-panel');
+    const outputText = document.getElementById('output-text');
+    const adviceText = document.getElementById('advice-text');
+    const fileNameDisplay = document.getElementById('file-name');
+
+    fileInput.onchange = () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const allowed = ['mp3', 'wav', 'flac'];
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        if (!allowed.includes(ext)) {
+            alert("I can not display this form please chang into either of the three (MP3, WAV, FLAC)");
+            fileInput.value = "";
+            analyzeBtn.disabled = true;
+            fileNameDisplay.innerText = "";
+            return;
+        }
+
+        fileNameDisplay.innerText = "Selected: " + file.name;
+        analyzeBtn.disabled = false;
+    };
+
+    analyzeBtn.onclick = async () => {
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        analyzeBtn.innerText = "Processing...";
+        analyzeBtn.disabled = true;
+
+        try {
+            const response = await fetch('/predict-audio', { method: 'POST', body: formData });
+            const data = await response.json();
+
+            resultPanel.style.display = 'block';
+            outputText.innerText = data.prediction;
+
+            if (data.status === 'success') {
+                outputText.style.color = data.prediction === 'Female' ? '#ec4899' : '#0ea5e9';
+                adviceText.innerHTML = "<b>Advice:</b> For best results, record your voice for at least 3 seconds in a quiet location.";
+            } else {
+                outputText.style.color = '#ef4444';
+                adviceText.innerHTML = "<b>Advice:</b> This AI model is specifically tuned for human vocal frequencies. Non-human sounds cannot be classified.";
+            }
+        } catch (err) {
+            alert("Connection error. Ensure api.py is running.");
+        } finally {
+            analyzeBtn.innerText = "Analyze Now";
+            analyzeBtn.disabled = false;
+        }
+    };
+</script>
+
+</body>
+</html>
